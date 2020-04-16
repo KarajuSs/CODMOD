@@ -18,15 +18,11 @@
 #define MNOZNIK_WYTRZYMALOSCI 0.002
 #define MNOZNIK_KONDYCJI 0.004
 
-#define IsPlayer(%1) (1<=%1<=MAXPLAYERS)
-
 new Handle:sql,
 	Handle:hud_task[65],
 	Handle:zapis_task[65],
 	Handle:cvar_doswiadczenie_za_zabojstwo,
 	Handle:cvar_doswiadczenie_za_zabojstwo_hs,
-	Handle:cvar_doswiadczenie_za_asyste,
-	Handle:cvar_doswiadczenie_za_zemste,
 	Handle:cvar_doswiadczenie_za_obrazenia,
 	Handle:cvar_doswiadczenie_za_wygrana_runde,
 	Handle:cvar_doswiadczenie_za_cele_mapy,
@@ -123,8 +119,6 @@ public OnPluginStart()
 	CreateConVar(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	cvar_doswiadczenie_za_zabojstwo = CreateConVar("cod_xp_kill", "800");
 	cvar_doswiadczenie_za_zabojstwo_hs = CreateConVar("cod_xp_killhs", "360");
-	cvar_doswiadczenie_za_asyste = CreateConVar("cod_xp_assist", "140");
-	cvar_doswiadczenie_za_zemste = CreateConVar("cod_xp_revenge", "220");
 	cvar_doswiadczenie_za_obrazenia = CreateConVar("cod_xp_damage", "2");
 	cvar_doswiadczenie_za_wygrana_runde = CreateConVar("cod_xp_winround", "150");
 	cvar_doswiadczenie_za_cele_mapy = CreateConVar("cod_xp_objectives", "400");
@@ -585,10 +579,9 @@ public Action:SmiercGracza(Handle:event, String:name[], bool:dontbroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	new killer = GetClientOfUserId(GetEventInt(event, "attacker"));
-	new assister = GetClientOfUserId(GetEventInt(event, "assister"));
 	new bool:headshot = GetEventBool(event, "headshot");
-	new bool:revenge = GetEventBool(event, "revenge");
-	if(!IsValidClient(client) || !IsValidClient(killer) || !IsValidClient(assister))
+
+	if(!IsValidClient(client) || !IsValidClient(killer))
 		return Plugin_Continue;
 
 	if(klasa_gracza[killer] && GetClientTeam(client) != GetClientTeam(killer))
@@ -611,22 +604,7 @@ public Action:SmiercGracza(Handle:event, String:name[], bool:dontbroadcast)
 				PrintToChat(killer, " \x06\x04[COD:MW]\x01 Otrzymałeś\x06 %i \x01doświadczenia za zabicie przeciwnika.", doswiadczenie_za_zabojstwo);
 			}
 		}
-		if(revenge) {
-			new doswiadczenie_za_zemste = GetConVarInt(cvar_doswiadczenie_za_zemste);
-			if(doswiadczenie_za_zemste)
-			{
-				UstawNoweDoswiadczenie(killer, doswiadczenie_gracza[killer]+doswiadczenie_za_zemste);
-				PrintToChat(killer, " \x06\x04[COD:MW]\x01 Otrzymałeś\x06 %i \x01doświadczenia za zemstę.", doswiadczenie_za_zemste);
-			}
-		}
-		if (IsPlayer(assister) && IsClientInGame(assister) && klasa_gracza[assister]) {
-			new doswiadczenia_za_asyste = GetConVarInt(cvar_doswiadczenie_za_asyste);
-			if(doswiadczenia_za_asyste)
-			{
-				UstawNoweDoswiadczenie(assister, doswiadczenie_gracza[assister]+doswiadczenia_za_asyste);
-				PrintToChat(assister, " \x06\x04[COD:MW]\x01 Otrzymałeś\x06 %i \x01doświadczenia za asyste.", doswiadczenia_za_asyste);
-			}
-		}
+
 		if(!item_gracza[0][killer])
 		{
 			UstawNowyItem(killer, -1, -1, -1, 0);
