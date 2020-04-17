@@ -1,0 +1,14 @@
+1.2 - by KarajuSs
+
+*nowość*
+- dodano doświadczenie za asyste w zabójstwie oraz zemste
+- dodano slot dla drugie perka
+- dodano wsparcie wytrzymałości dla drugiego perka
+- dodano komendy administratora (dajlvl, ustawlvl, dajxp, ustawxp)
+- dodano listę typów klas (zwykłe, vip, premium)
+- dodano początkowe wsparcie dla vip'ów (flaga A - rezerwacja slota)
+- statystyka 'wytrzymałość' dodaje nam kewlara oraz w przypadku dodania 90 punktów, otrzymujemy hełm
+
+*zmiany*
+- dodano polskie litery
+- drop drugiego perka ustawiono tylko dla vip'ów
