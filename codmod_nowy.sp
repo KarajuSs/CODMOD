@@ -23,6 +23,8 @@ new Handle:sql,
 	Handle:zapis_task[65],
 	Handle:cvar_doswiadczenie_za_zabojstwo,
 	Handle:cvar_doswiadczenie_za_zabojstwo_hs,
+	Handle:cvar_doswiadczenie_za_zemste,
+	Handle:cvar_doswiadczenie_za_asyste,
 	Handle:cvar_doswiadczenie_za_obrazenia,
 	Handle:cvar_doswiadczenie_za_wygrana_runde,
 	Handle:cvar_doswiadczenie_za_cele_mapy,
@@ -119,6 +121,8 @@ public OnPluginStart()
 	CreateConVar(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	cvar_doswiadczenie_za_zabojstwo = CreateConVar("cod_xp_kill", "800");
 	cvar_doswiadczenie_za_zabojstwo_hs = CreateConVar("cod_xp_killhs", "360");
+	cvar_doswiadczenie_za_zemste = CreateConVar("cod_xp_revenge", "320");
+	cvar_doswiadczenie_za_asyste = CreateConVar("cod_xp_assist", "180");
 	cvar_doswiadczenie_za_obrazenia = CreateConVar("cod_xp_damage", "2");
 	cvar_doswiadczenie_za_wygrana_runde = CreateConVar("cod_xp_winround", "150");
 	cvar_doswiadczenie_za_cele_mapy = CreateConVar("cod_xp_objectives", "400");
@@ -173,6 +177,13 @@ public OnPluginStart()
 	RegConsoleCmd("buyammo2", BlokujKomende);
 	RegConsoleCmd("rebuy", BlokujKomende);
 	RegConsoleCmd("autobuy", BlokujKomende);
+
+	RegAdminCmd("cod_dajxp", DajExpa, ADMFLAG_ROOT);
+	RegAdminCmd("cod_ustawxp", UstawExpa, ADMFLAG_ROOT);
+	RegAdminCmd("cod_dajlvl", DajPoziom, ADMFLAG_ROOT);
+	RegAdminCmd("cod_ustawlvl", UstawPoziom, ADMFLAG_ROOT);
+	/*RegAdminCmd("cod_ustawperk1", UstawPerk1, ADMFLAG_ROOT);
+	RegAdminCmd("cod_ustawperk2", UstawPerk2, ADMFLAG_ROOT);*/
 
 	HookEvent("round_freeze_end", PoczatekRundy);
 	HookEvent("round_start", NowaRunda);
@@ -586,7 +597,25 @@ public Action:SmiercGracza(Handle:event, String:name[], bool:dontbroadcast)
 
 	if(klasa_gracza[killer] && GetClientTeam(client) != GetClientTeam(killer))
 	{
-		if(headshot)
+		if(GetEventInt(event, "assister"))
+		{
+			new doswiadczenie_za_asyste = GetConVarInt(cvar_doswiadczenie_za_asyste);
+			if(doswiadczenie_za_asyste)
+			{
+				UstawNoweDoswiadczenie(killer, doswiadczenie_gracza[killer]+doswiadczenie_za_asyste);
+				PrintToChat(killer, " \x06\x04[COD:MW]\x01 Otrzymałeś\x06 %i \x01doświadczenia za asyste.", doswiadczenie_za_asyste);
+			}
+		}
+		else if(GetEventInt(event, "revenge"))
+		{
+			new doswiadczenie_za_zemste = GetConVarInt(cvar_doswiadczenie_za_zemste);
+			if(doswiadczenie_za_zemste)
+			{
+				UstawNoweDoswiadczenie(killer, doswiadczenie_gracza[killer]+doswiadczenie_za_zemste);
+				PrintToChat(killer, " \x06\x04[COD:MW]\x01 Otrzymałeś\x06 %i \x01doświadczenia za odwet.", doswiadczenie_za_zemste);
+			}
+		}
+		else if(headshot)
 		{
 			new doswiadczenie_za_zabojstwo_hs = GetConVarInt(cvar_doswiadczenie_za_zabojstwo_hs);
 			if(doswiadczenie_za_zabojstwo_hs)
@@ -673,7 +702,6 @@ public Action:WybierzKlase(client, args)
 			if(!StrEqual(frakcje_klas[i], "") && !is_in_previous(frakcje_klas[i], i))
 				AddMenuItem(menu, frakcje_klas[i], frakcje_klas[i]);
 		}
-
 		DisplayMenu(menu, client, 250);
 	}
 	else
@@ -789,7 +817,7 @@ public OpisKlas2_Handler(Handle:classhandle, MenuAction:action, client, position
 public Action:OpisItemow(client, args)
 {
 	new Handle:menu = CreateMenu(OpisItemow_Handler);
-	SetMenuTitle(menu, "Wybierz Item:");
+	SetMenuTitle(menu, "Wybierz Perk:");
 	for(new i = 1; i <= ilosc_itemow; i ++)
 		AddMenuItem(menu, "", nazwy_itemow[i]);
 
@@ -2125,6 +2153,246 @@ public ZarejestrujItem(Handle:plugin, numParams)
 
 	return ilosc_itemow;
 }
+
+public Action:DajExpa(client, args) {
+	if(args != 2) {
+		PrintToConsole(client, "Użyj: cod_dajxp <nick> <wartość>");
+		return Plugin_Handled;
+	}
+ 
+	char targetName[64];
+	GetCmdArg(1, targetName, sizeof(targetName));
+	int target = FindTarget(client, targetName, true, true);
+
+	if(target <= 0) {
+		ReplyToCommand(client, "*** Nie znaleziono danego gracza");
+		return Plugin_Handled;
+	}
+
+	if(!klasa_gracza[target]) {
+		ReplyToCommand(client, "*** Gracz nie wybrał żadnej klasy");
+		return Plugin_Handled;
+	}
+
+	int exp;
+	char sExp[32];
+
+	GetCmdArg(2, sExp, sizeof(sExp));
+	exp = StringToInt(sExp);
+
+	if(exp <= 0) {
+		ReplyToCommand(client, "*** Podana wartość jest niepoprawna");
+		return Plugin_Handled;
+	}
+
+	GetClientName(target, targetName, sizeof(targetName));
+	UstawNoweDoswiadczenie(target, doswiadczenie_gracza[target]+exp);
+
+	PrintToConsole(client, "*** Graczowi %s dodano +%d doświadczenia", targetName, exp);
+	return Plugin_Handled;
+}
+
+public Action:UstawExpa(client, args) {
+	if (args != 2) {
+		PrintToConsole(client, "Użyj: cod_ustawxp <nick> <wartość>");
+		return Plugin_Handled;
+	}
+ 
+	char targetName[64];
+	GetCmdArg(1, targetName, sizeof(targetName));
+	int target = FindTarget(client, targetName, true, true);
+
+	if(target <= 0) {
+		ReplyToCommand(client, "*** Nie znaleziono danego gracza");
+		return Plugin_Handled;
+	}
+
+	if(!klasa_gracza[target]) {
+		ReplyToCommand(client, "*** Gracz nie wybrał żadnej klasy");
+		return Plugin_Handled;
+	}
+
+	int exp;
+	char sExp[32];
+
+	GetCmdArg(2, sExp, sizeof(sExp));
+	exp = StringToInt(sExp);
+
+	if(exp < 0) {
+		ReplyToCommand(client, "*** Podana wartość jest niepoprawna");
+		return Plugin_Handled;
+	}
+
+	GetClientName(target, targetName, sizeof(targetName));
+	UstawNoweDoswiadczenie(target, exp);
+
+	PrintToConsole(client, "*** Graczowi %s ustawiono %d doświadczenia", targetName, exp);
+	return Plugin_Handled;
+}
+
+public Action:DajPoziom(client, args) {
+	if(args != 2) {
+		PrintToConsole(client, "Użyj: cod_dajlvl <nick> <wartość>");
+		return Plugin_Handled;
+	}
+
+	char targetName[64];
+	GetCmdArg(1, targetName, sizeof(targetName));
+	int target = FindTarget(client, targetName, true, true);
+
+	if(target <= 0) {
+		ReplyToCommand(client, "*** Nie znaleziono danego gracza");
+		return Plugin_Handled;
+	}
+
+	if(!klasa_gracza[target]) {
+		ReplyToCommand(client, "*** Gracz nie wybrał żadnej klasy");
+		return Plugin_Handled;
+	}
+
+	int level;
+	char sLevel[16];
+
+	GetCmdArg(2, sLevel, sizeof(sLevel));
+	level = StringToInt(sLevel);
+
+	if(level <= 0) {
+		ReplyToCommand(client, "*** Podana wartość jest niepoprawna");
+		return Plugin_Handled;
+	}
+
+	GetClientName(target, targetName, sizeof(targetName));
+	UstawNoweDoswiadczenie(target, SprawdzDoswiadczenie(poziom_gracza[target]+level-1));
+
+	PrintToConsole(client, "*** Graczowi %s dodano +%d poziom", targetName, level);
+	return Plugin_Handled;
+}
+
+public Action:UstawPoziom(client, args) {
+	if(args != 2) {
+		PrintToConsole(client, "Użyj: cod_ustawlvl <nick> <wartość>");
+		return Plugin_Handled;
+	}
+ 
+	char targetName[64];
+	GetCmdArg(1, targetName, sizeof(targetName));
+	int target = FindTarget(client, targetName, true, true);
+
+	if(target <= 0) {
+		ReplyToCommand(client, "*** Nie znaleziono danego gracza");
+		return Plugin_Handled;
+	}
+
+	if(!klasa_gracza[target]) {
+		ReplyToCommand(client, "*** Gracz nie wybrał żadnej klasy");
+		return Plugin_Handled;
+	}
+
+	int level;
+	char sLevel[16];
+
+	GetCmdArg(2, sLevel, sizeof(sLevel));
+	level = StringToInt(sLevel);
+
+	if(level <= 0) {
+		ReplyToCommand(client, "*** Podana wartość jest niepoprawna");
+		return Plugin_Handled;
+	}
+
+	GetClientName(target, targetName, sizeof(targetName));
+	UstawNoweDoswiadczenie(target, SprawdzDoswiadczenie(level-1));
+
+	PrintToConsole(client, "*** Graczowi %s ustawiono %d poziom", targetName, level);
+	return Plugin_Handled;
+}
+/*
+public Action:UstawPerk1(client, args) {
+	if(args < 2) {
+		PrintToConsole(client, "Użyj: cod_ustawperk1 <nick> <nazwa perka> [wartość perku]");
+		return Plugin_Handled;
+	}
+ 
+	char targetName[64];
+	GetCmdArg(1, targetName, sizeof(targetName));
+	int target = FindTarget(client, targetName, true, true);
+
+	if(target <= 0) {
+		ReplyToCommand(client, "*** Nie znaleziono danego gracza");
+		return Plugin_Handled;
+	}
+
+	if(!klasa_gracza[target]) {
+		ReplyToCommand(client, "*** Gracz nie wybrał żadnej klasy");
+		return Plugin_Handled;
+	}
+
+	int perkID, perkValue = -1;
+	char perkName[MAX_PERKNAME_LENGTH+1];
+
+	GetCmdArg(2, perkName, sizeof(perkName));
+	perkID = GetPerkID(perkName);
+
+	if(!perkID) {
+		PrintToConsole(client, "*** Nie znaleziono perku");
+		return Plugin_Handled;
+	}
+
+	if(args == 3) {
+		char sPerkValue[32];
+
+		GetCmdArg(3, sPerkValue, sizeof(sPerkValue));
+		perkValue = StringToInt(sPerkValue);
+	}
+
+	GetClientName(target, targetName, sizeof(targetName));
+	SetClientPerk(target, perkID, perkValue);
+	PrintToConsole(client, "*** Graczowi %s ustawiono perk %s", targetName, perkName);
+	return Plugin_Handled;
+}
+public Action:UstawPerk2(client, args) {
+	if(args < 2) {
+		PrintToConsole(client, "Użyj: cod_ustawperk2 <nick> <nazwa perka> [wartość perku]");
+		return Plugin_Handled;
+	}
+ 
+	char targetName[64];
+	GetCmdArg(1, targetName, sizeof(targetName));
+	int target = FindTarget(client, targetName, true, true);
+
+	if(target <= 0) {
+		ReplyToCommand(client, "*** Nie znaleziono danego gracza");
+		return Plugin_Handled;
+	}
+
+	if(!klasa_gracza[target]) {
+		ReplyToCommand(client, "*** Gracz nie wybrał żadnej klasy");
+		return Plugin_Handled;
+	}
+
+	int perkID, perkValue = -1;
+	char perkName[MAX_PERKNAME_LENGTH+1];
+
+	GetCmdArg(2, perkName, sizeof(perkName));
+	perkID = GetPerkID(perkName);
+
+	if(!perkID) {
+		PrintToConsole(client, "*** Nie znaleziono perku");
+		return Plugin_Handled;
+	}
+
+	if(args == 3) {
+		char sPerkValue[32];
+
+		GetCmdArg(3, sPerkValue, sizeof(sPerkValue));
+		perkValue = StringToInt(sPerkValue);
+	}
+
+	GetClientName(target, targetName, sizeof(targetName));
+	SetClientPerk(target, perkID, perkValue);
+	PrintToConsole(client, "*** Graczowi %s ustawiono perk %s", targetName, perkName);
+	return Plugin_Handled;
+}
+*/
 public IsValidPlayers()
 {
 	new gracze;
