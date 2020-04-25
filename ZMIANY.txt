@@ -1,6 +1,7 @@
 1.2 - by KarajuSs
 
 *nowość*
+- dodano do HUD'a ilość posiadanych monet
 - dodano doświadczenie za asyste w zabójstwie oraz zemste
 - dodano slot dla drugie perka
 - dodano wsparcie wytrzymałości dla drugiego perka
@@ -12,3 +13,4 @@
 *zmiany*
 - dodano polskie litery
 - drop drugiego perka ustawiono tylko dla vip'ów
+- przeniesiono komendy administratora do osobnego pluginu
