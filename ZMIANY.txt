@@ -3,7 +3,7 @@
 *nowość*
 - dodano do HUD'a ilość posiadanych monet
 - dodano doświadczenie za asyste w zabójstwie oraz zemste
-- dodano slot dla drugie perka
+- dodano slot dla drugiego perka
 - dodano wsparcie wytrzymałości dla drugiego perka
 - dodano komendy administratora (dajlvl, ustawlvl, dajxp, ustawxp)
 - dodano listę typów klas (zwykłe, vip, premium)
